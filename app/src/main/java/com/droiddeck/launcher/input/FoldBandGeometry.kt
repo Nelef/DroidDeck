@@ -9,6 +9,8 @@ import kotlin.math.min
  * The gamepad in the band under the game on an unfolded screen (a Galaxy Z Fold: 2184 x 740 under a 16:9 game), laid out as
  * nx2android's band (nxnative's phone layout over the band's height, dm/android/overlay_layout.h): left stick above the d-pad,
  * face buttons above the right stick, shoulders across the band's top corners, View and Menu beside the menu button.
+ * Both sides are sticks whatever the Deck tab's trackpads (nx2android's band has no trackpads); a stick is always drawn and
+ * starts where the thumb lands.
  * Sizes follow the band's height and are grown so a face button is at least [MIN_FACE_MM] wide on the glass.
  */
 internal class FoldBandGeometry(private val width: Int, private val height: Int, private val safe: Rect, private val xdpi: Float) {
@@ -61,11 +63,11 @@ internal class FoldBandGeometry(private val width: Int, private val height: Int,
     /** The menu button's place in view pixels (the band's bar opens from it). */
     fun menuBox(): GamepadGeometry.Box = box(MENU)
 
-    fun place(elements: List<InputSurfaceElement>, left: InputControl, right: InputControl, dpad: DpadStyle?): List<InputSurfaceElement> {
+    fun place(elements: List<InputSurfaceElement>, dpad: DpadStyle?): List<InputSurfaceElement> {
         if (w <= 0f || h <= 0f) return elements
         val boxes = LinkedHashMap<InputControl, GamepadGeometry.Box>()
-        boxes[left] = box(STICK_L)
-        boxes[right] = box(STICK_R)
+        boxes[InputControl.LS] = box(STICK_L)
+        boxes[InputControl.RS] = box(STICK_R)
         // Switch positions for Xbox labels: Switch's A is on the right (Xbox B), its B at the bottom (Xbox A), X on top (Y), Y on the left (X)
         boxes[InputControl.B] = box(FACE)
         boxes[InputControl.A] = box(FACE_BOTTOM)
@@ -96,7 +98,7 @@ internal class FoldBandGeometry(private val width: Int, private val height: Int,
             val stock = e.id == "legacy:${e.control.id}"
             when {
                 stock && e.control in boxes -> e.at(boxes.getValue(e.control))
-                stock -> null   // a control the band leaves out: the rear grips (their own tab), a stick or trackpad the dock does not use
+                stock -> null   // a control the band leaves out: the rear grips (their own tab), the trackpads
                 e.id == KEYBOARD -> e.at(box(KEYBOARD_SLOT))
                 else -> e
             }
@@ -115,8 +117,10 @@ internal class FoldBandGeometry(private val width: Int, private val height: Int,
     private val viewW = width.toFloat()
     private val viewH = height.toFloat()
 
+    // a stick floats (it starts where the thumb lands) but is never hidden while idle: DroidDeck's adaptive stick is drawn only while held
     private fun InputSurfaceElement.at(b: GamepadGeometry.Box) =
-        copy(x = b.left / viewW, y = b.top / viewH, width = b.width / viewW, height = b.height / viewH, floating = false).bounded()
+        copy(x = b.left / viewW, y = b.top / viewH, width = b.width / viewW, height = b.height / viewH,
+            floating = kind == InputElementKind.STICK, hideWhenIdle = false).bounded()
 
     companion object {
         const val MIN_FACE_MM = 10f

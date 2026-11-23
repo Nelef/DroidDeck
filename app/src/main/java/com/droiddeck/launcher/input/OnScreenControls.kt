@@ -91,8 +91,7 @@ class OnScreenControls(context: Context, pad: PadBridge?, val dock: OnScreenLayo
         return placements.getOrPut(key) {
             val elements = OnScreenLayout.elements(context, layout, viewWidth, viewHeight, safe, isButtonsOnly, dock,
                 rearButtons = optional.first, trackpads = optional.second)
-            val band = dock
-            if (band != null && !isButtonsOnly && foldBand()) geometry().place(elements, band.left, band.right, key.kit?.dpad) else elements
+            if (!isButtonsOnly && foldBand()) geometry().place(elements, key.kit?.dpad) else elements
         }
     }
 

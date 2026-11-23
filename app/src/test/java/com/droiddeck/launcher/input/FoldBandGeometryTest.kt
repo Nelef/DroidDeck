@@ -16,7 +16,7 @@ class FoldBandGeometryTest {
     private val width = 2184
     private val height = 740
     private val xdpi = 367.55f
-    private val dock = OnScreenLayout.Dock(portrait = false, grips = true)
+    private val dock = OnScreenLayout.Dock(portrait = false, grips = true)   // DroidDeck's Deck tab: its right side is a trackpad
 
     private fun stock() = listOf(InputControl.LS, InputControl.RS, InputControl.A, InputControl.B, InputControl.X, InputControl.Y,
         InputControl.UP, InputControl.RIGHT, InputControl.DOWN, InputControl.LEFT, InputControl.LB, InputControl.LT, InputControl.RB,
@@ -24,7 +24,7 @@ class FoldBandGeometryTest {
         InputSurfaceElement(it, .1f, .1f, .05f, .05f, buttonShape = InputButtonShape.ROUNDED)
     } + InputSurfaceElement(InputControl.A, .5f, .5f, .1f, .1f, id = "custom:jump")
 
-    private fun placed() = FoldBandGeometry(width, height, Rect(), xdpi).place(stock(), dock.left, dock.right, DpadStyle.CROSS)
+    private fun placed(elements: List<InputSurfaceElement> = stock()) = FoldBandGeometry(width, height, Rect(), xdpi).place(elements, DpadStyle.CROSS)
 
     private fun box(e: InputSurfaceElement) = floatArrayOf(e.x * width, e.y * height, e.width * width, e.height * height)
     private fun centre(e: InputSurfaceElement) = box(e).let { floatArrayOf(it[0] + it[2] / 2f, it[1] + it[3] / 2f) }
@@ -70,6 +70,18 @@ class FoldBandGeometryTest {
                 hypot(a[0] + a[2] / 2f - b[0] - b[2] / 2f, a[1] + a[3] / 2f - b[1] - b[3] / 2f) < (a[2] + b[2]) / 2f - 1f
             } else a[0] < b[0] + b[2] - 1f && b[0] < a[0] + a[2] - 1f && a[1] < b[1] + b[3] - 1f && b[1] < a[1] + a[3] - 1f
             assertFalse("${e[i].id} and ${e[j].id} overlap", overlap)
+        }
+    }
+
+    @Test fun sticksOnBothSidesAlwaysDrawn() {
+        val deck = stock().filterNot { it.control == InputControl.RS } +
+            InputSurfaceElement(InputControl.RIGHT_PAD, .58f, .59f, .4f, .39f) +
+            InputSurfaceElement(InputControl.LS, .02f, .17f, .4f, .4f, id = "legacy:ls", floating = true, hideWhenIdle = true)
+        val e = placed(deck.filterNot { it.control == InputControl.LS && !it.hideWhenIdle })
+        assertTrue(e.none { it.control == InputControl.RIGHT_PAD })
+        for (c in listOf(InputControl.LS, InputControl.RS)) {
+            val stick = e.of(c)
+            assertTrue(stick.floating); assertFalse(stick.hideWhenIdle)
         }
     }
 
