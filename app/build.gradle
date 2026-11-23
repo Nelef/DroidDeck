@@ -198,6 +198,11 @@ android {
         release {
             minifyEnabled false
             signingConfig signingConfigs.testkey
+            def releaseSuffix = localBuildOptions.getProperty('droiddeck.releaseApplicationIdSuffix')
+            if (releaseSuffix) {
+                applicationIdSuffix releaseSuffix
+                resValue 'string', 'app_name', localBuildOptions.getProperty('droiddeck.releaseAppName', 'DroidDeck Fold')
+            }
         }
     }
 
