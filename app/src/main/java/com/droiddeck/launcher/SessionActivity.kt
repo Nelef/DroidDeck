@@ -226,6 +226,8 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
     private var unfoldedPanel by mutableStateOf<OnScreenControls?>(null)
     private var unfoldedColumn: android.widget.LinearLayout? = null
     private var unfoldedDeckSurface: com.droiddeck.launcher.ui.InputSurfaceView? = null
+    /** A foldable's band hides its bar behind the band's menu button (FoldBandGeometry); true while the player has it open. */
+    private var unfoldedBarOpen = false
     private var swappedInputSurface: com.droiddeck.launcher.ui.InputSurfaceView? = null
     private var unfoldedDeckPanel by mutableStateOf<com.droiddeck.launcher.input.DeckPanel?>(null)
     private var deckPanelLayouts: Map<com.droiddeck.launcher.input.DeckPanel, com.droiddeck.launcher.input.SavedInputLayout?> = emptyMap()
@@ -4693,7 +4695,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
         val width = rootContentWidth()
         val height = rootContentHeight()
         val wanted = controlsBelowWanted()
-        val tabRow = unfoldedColumn?.getChildAt(0)?.height?.let {
+        val tabRow = unfoldedColumn?.getChildAt(0)?.takeIf { it.visibility != View.GONE }?.height?.let {
             it - (com.droiddeck.launcher.ui.BAR_HEIGHT.value * resources.displayMetrics.density + 0.5f).toInt()
         } ?: 0
         val outputAspect = if (!wanted || SessionState.followScreen) 0f
@@ -4724,6 +4726,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
         if (!wanted) return
         if (panel == null) {
             panel = OnScreenControls(this, padBridge, dock).also { it.updateLayout(primaryInputLayout) }
+            if (!dock.portrait) panel.onMenu = { unfoldedBarOpen = !unfoldedBarOpen; showUnfoldedBar() }
             val column = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
                 addView(unfoldedBar().apply {
@@ -4741,6 +4744,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
             updateOnScreenControls()
         }
         unfoldedColumn?.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, height - gameHeight, Gravity.BOTTOM)
+        showUnfoldedBar()
     }
 
     private fun unfoldedBar(): View = com.droiddeck.launcher.ui.bottomScreenBarView(this) {
@@ -4748,6 +4752,19 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
         com.droiddeck.launcher.ui.sessionBarModel(getString(if (deck != null) R.string.second_mode_deck_controls else R.string.deck_tab_gamepad),
             { chooseUnfoldedControls(false) }, { drawerOpen = true }, ::tapSteamButton, ::tapQam,
             tabs = deck?.let { com.droiddeck.launcher.ui.deckPanelTabs(this, it, ::selectDeckPanel) })
+    }
+
+    /** The bar stays shown for a portrait phone's band, while it is open, and while another Deck tab (no menu button) is shown. */
+    private fun showUnfoldedBar() {
+        val column = unfoldedColumn ?: return
+        val bar = column.getChildAt(0) ?: return
+        val collapsible = unfoldedPanel?.onMenu != null && unfoldedDeckSurface == null &&
+            com.droiddeck.launcher.input.FoldBandGeometry.applies(unfoldedPanel?.dock, rootContentWidth(), column.layoutParams?.height ?: 0)
+        val visibility = if (collapsible && !unfoldedBarOpen) View.GONE else View.VISIBLE
+        if (bar.visibility != visibility) {
+            bar.visibility = visibility
+            bar.post { applyUnfoldedControls() }
+        }
     }
 
     private fun showUnfoldedDeckPanel() {
@@ -4760,13 +4777,14 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
         unfoldedDeckSurface?.let { it.releaseInputs(); column?.removeView(it) }
         unfoldedDeckSurface = null
         if (column == null || panel == null) return
-        if (layout == null) { panel.visibility = View.VISIBLE; return }
+        if (layout == null) { panel.visibility = View.VISIBLE; showUnfoldedBar(); return }
         panel.releaseAll()
         panel.visibility = View.GONE
         unfoldedDeckSurface = com.droiddeck.launcher.ui.InputSurfaceView(this, padBridge, layout.elements, InputRole.PRIMARY, layout.style, haptics = true).also {
             it.tag = layout
             column.addView(it, android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         }
+        showUnfoldedBar()
     }
 
     private fun bottomKeyboardPresentation(): SecondScreenPresentation? {

@@ -25,6 +25,10 @@ class OnScreenControls(context: Context, pad: PadBridge?, val dock: OnScreenLayo
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Placement, List<InputSurfaceElement>>) = size > PLACEMENT_CACHE
     }
     private val quickToggle = QuickToggle(context)
+    private val menuButton = MenuButton(context)
+    /** The band's menu button (a foldable's band, [FoldBandGeometry]): shows and hides the bar above the band. */
+    var onMenu: (() -> Unit)? = null
+        set(value) { field = value; render() }
     var isButtonsOnly = false
         private set
     var isQuickHidden = false
@@ -41,7 +45,13 @@ class OnScreenControls(context: Context, pad: PadBridge?, val dock: OnScreenLayo
         addView(surface, LayoutParams(-1, -1))
         val size = (QUICK_HIT_DP * 2 * resources.displayMetrics.density).toInt()
         addView(quickToggle, LayoutParams(size, size, Gravity.START or Gravity.BOTTOM))
+        addView(menuButton, LayoutParams(0, 0, Gravity.START or Gravity.TOP))
     }
+
+    private fun foldBand() = FoldBandGeometry.applies(dock, viewWidth, viewHeight) &&
+        ControllerPrefs.layout(context, viewWidth, viewHeight).isEmpty()
+
+    private fun geometry() = FoldBandGeometry(viewWidth, viewHeight, safe, resources.displayMetrics.xdpi)
 
     fun updateLayout(value: SavedInputLayout?) {
         if (layout == value) return
@@ -79,8 +89,10 @@ class OnScreenControls(context: Context, pad: PadBridge?, val dock: OnScreenLayo
         val optional = OnScreenLayout.optionalControls(context)
         val key = Placement(layout, viewWidth, viewHeight, Rect(safe), isButtonsOnly, PadKit.forOverlay(context, layout), optional)
         return placements.getOrPut(key) {
-            OnScreenLayout.elements(context, layout, viewWidth, viewHeight, safe, isButtonsOnly, dock,
+            val elements = OnScreenLayout.elements(context, layout, viewWidth, viewHeight, safe, isButtonsOnly, dock,
                 rearButtons = optional.first, trackpads = optional.second)
+            val band = dock
+            if (band != null && !isButtonsOnly && foldBand()) geometry().place(elements, band.left, band.right, key.kit?.dpad) else elements
         }
     }
 
@@ -92,7 +104,21 @@ class OnScreenControls(context: Context, pad: PadBridge?, val dock: OnScreenLayo
             else -> elements
         })
         quickToggle.visibility = if (isButtonsOnly || isPinnedOnly || layout == null || dock != null) GONE else VISIBLE
+        placeMenuButton()
         refreshAppearance()
+    }
+
+    private fun placeMenuButton() {
+        val shown = onMenu != null && FoldBandGeometry.applies(dock, viewWidth, viewHeight)
+        menuButton.visibility = if (shown) VISIBLE else GONE
+        if (!shown) return
+        val b = geometry().menuBox()
+        val params = menuButton.layoutParams as LayoutParams
+        val w = b.width.toInt(); val h = b.height.toInt(); val x = b.left.toInt(); val y = b.top.toInt()
+        if (params.width != w || params.height != h || params.leftMargin != x || params.topMargin != y) {
+            params.width = w; params.height = h; params.leftMargin = x; params.topMargin = y
+            menuButton.layoutParams = params
+        }
     }
 
     private fun refreshAppearance() {
@@ -105,7 +131,8 @@ class OnScreenControls(context: Context, pad: PadBridge?, val dock: OnScreenLayo
     }
 
     fun takesTouchAt(x: Float, y: Float) = surface.takesTouchAt(x, y) ||
-        quickToggle.visibility == VISIBLE && x >= quickToggle.left && x < quickToggle.right && y >= quickToggle.top && y < quickToggle.bottom
+        quickToggle.visibility == VISIBLE && x >= quickToggle.left && x < quickToggle.right && y >= quickToggle.top && y < quickToggle.bottom ||
+        menuButton.visibility == VISIBLE && x >= menuButton.left && x < menuButton.right && y >= menuButton.top && y < menuButton.bottom
     fun releaseAll() = surface.releaseInputs()
     fun reload() { releaseAll(); placements.clear(); render() }
 
@@ -177,6 +204,46 @@ class OnScreenControls(context: Context, pad: PadBridge?, val dock: OnScreenLayo
                         setQuickHidden(!isQuickHidden)
                     }
                     armed = false
+                }
+            }
+            return true
+        }
+    }
+
+    private inner class MenuButton(context: Context) : View(context) {
+        private val density = resources.displayMetrics.density
+        private var armed = false
+        private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 1.5f * density }
+        private val bar = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeCap = Paint.Cap.ROUND }
+
+        override fun onDraw(canvas: Canvas) {
+            val r = minOf(width, height) / 2f
+            val inset = stroke.strokeWidth
+            fill.color = (InputSurfaceView.SURFACE and 0x00ffffff) or (if (armed) 230 shl 24 else 190 shl 24)
+            canvas.drawRoundRect(inset, inset, width - inset, height - inset, r, r, fill)
+            stroke.color = InputSurfaceView.LINE
+            canvas.drawRoundRect(inset, inset, width - inset, height - inset, r, r, stroke)
+            bar.color = InputSurfaceView.TEXT
+            bar.strokeWidth = height * .08f
+            val half = height * .22f
+            for (i in -1..1) {
+                val y = height / 2f + i * height * .17f
+                canvas.drawLine(width / 2f - half, y, width / 2f + half, y, bar)
+            }
+        }
+
+        @SuppressLint("ClickableViewAccessibility")
+        override fun onTouchEvent(event: MotionEvent): Boolean {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> { armed = true; invalidate() }
+                MotionEvent.ACTION_CANCEL -> { armed = false; invalidate() }
+                MotionEvent.ACTION_UP -> {
+                    if (armed && event.x in 0f..width.toFloat() && event.y in 0f..height.toFloat()) {
+                        performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        onMenu?.invoke()
+                    }
+                    armed = false; invalidate()
                 }
             }
             return true
