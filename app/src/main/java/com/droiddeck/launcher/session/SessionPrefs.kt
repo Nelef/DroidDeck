@@ -2037,6 +2037,13 @@ object SessionPrefs {
         prefs(context).edit().putBoolean("unfoldedControls", enabled).apply()
     }
 
+    /** The game's share of an unfolded window the player dragged for this window shape (SessionDisplay.unfoldedShape), -1 when automatic. */
+    fun unfoldedGameShare(context: Context, shape: Int): Float = prefs(context).getFloat("unfoldedGameShare.$shape", -1f)
+
+    fun setUnfoldedGameShare(context: Context, shape: Int, share: Float?) {
+        prefs(context).edit().apply { if (share == null) remove("unfoldedGameShare.$shape") else putFloat("unfoldedGameShare.$shape", share) }.apply()
+    }
+
     fun unfoldedControlsWithController(context: Context): Boolean =
         prefs(context).getBoolean("unfoldedControlsWithController", false)
 

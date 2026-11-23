@@ -89,9 +89,23 @@ object SessionDisplay {
 
     const val UNFOLDED_MIN_DP = 600
 
-    fun unfoldedGameHeight(width: Int, height: Int, tabRow: Int = 0, aspect: Float = 0f): Int {
+    /** The least share of the window the game keeps when the player drags it smaller (nx2android's OV_BAR_MIN). */
+    const val UNFOLDED_MIN_GAME_SHARE = 0.35f
+
+    /** The window shape the player's split is kept for: its width in hundredths of its height (nx2android's ov_shape). */
+    fun unfoldedShape(width: Int, height: Int): Int = if (height > 0) Math.round(width * 100f / height) else 0
+
+    /** [share]: the player's split (dragged in the band's bar), the game's height as a share of the window; at most where a picture of
+     * the game's shape fills the width, so a smaller one is letterboxed at its sides. -1: automatic. */
+    fun unfoldedGameHeight(width: Int, height: Int, tabRow: Int = 0, aspect: Float = 0f, share: Float = -1f): Int {
         val row = tabRow.coerceAtLeast(0)
         val cap = (height * UNFOLDED_MAX_GAME_SHARE).toInt()
+        if (share > 0f) {
+            val natural = if (aspect > 0f && aspect < 16f / 9f) width / aspect else width * 9f / 16f
+            val hi = minOf(natural, cap.toFloat())
+            val lo = minOf(height * UNFOLDED_MIN_GAME_SHARE, hi)
+            return (share * height).coerceIn(lo, hi).toInt().coerceAtLeast(0) and 1.inv()
+        }
         if (aspect > 0f && aspect < 16f / 9f) return minOf((width / aspect).toInt(), cap - row).coerceAtLeast(0) and 1.inv()
         return (minOf(width * 9 / 16, cap) - row).coerceAtLeast(0) and 1.inv()
     }

@@ -65,6 +65,16 @@ class SessionDisplayTest {
         assertEquals(864, SessionDisplay.unfoldedGameHeight(1920, 1080))
     }
 
+    @Test fun thePlayersSplitKeepsTheGameBetweenAThirdAndTheFullWidth() {
+        // an unfolded Fold7, 2184 x 1968: a 16:9 game fills the width at 1228
+        assertEquals(984, SessionDisplay.unfoldedGameHeight(2184, 1968, 0, 0f, .5f))
+        assertEquals(984, SessionDisplay.unfoldedGameHeight(2184, 1968, 136, 0f, .5f))   // the open bar sits in the band
+        assertEquals(688, SessionDisplay.unfoldedGameHeight(2184, 1968, 0, 0f, .1f))     // at least 35% of the window
+        assertEquals(1228, SessionDisplay.unfoldedGameHeight(2184, 1968, 0, 0f, .9f))    // no taller than the width's 16:9 picture
+        assertEquals(1228, SessionDisplay.unfoldedGameHeight(2184, 1968, 0, 0f, -1f))
+        assertEquals(111, SessionDisplay.unfoldedShape(2184, 1968))
+    }
+
     @Test fun aTabRowUnderTheBarComesOutOfTheGameNotTheControls() {
         assertEquals(1376, SessionDisplay.unfoldedGameHeight(2448, 1848, 0))
         assertEquals(1240, SessionDisplay.unfoldedGameHeight(2448, 1848, 136))

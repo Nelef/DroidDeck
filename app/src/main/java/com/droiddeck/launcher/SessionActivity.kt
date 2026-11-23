@@ -228,6 +228,11 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
     private var unfoldedDeckSurface: com.droiddeck.launcher.ui.InputSurfaceView? = null
     /** A foldable's band hides its bar behind the band's menu button (FoldBandGeometry); true while the player has it open. */
     private var unfoldedBarOpen = false
+    /** The split the player is dragging (BandSplitHandle) as the game's share of the window, null while not dragging. */
+    private var unfoldedDragShare: Float? = null
+    private var unfoldedDragStart = 0
+    private var unfoldedGameTop = 0
+    private var unfoldedHandle: com.droiddeck.launcher.input.BandSplitHandle? = null
     private var swappedInputSurface: com.droiddeck.launcher.ui.InputSurfaceView? = null
     private var unfoldedDeckPanel by mutableStateOf<com.droiddeck.launcher.input.DeckPanel?>(null)
     private var deckPanelLayouts: Map<com.droiddeck.launcher.input.DeckPanel, com.droiddeck.launcher.input.SavedInputLayout?> = emptyMap()
@@ -4700,8 +4705,11 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
         } ?: 0
         val outputAspect = if (!wanted || SessionState.followScreen) 0f
             else outputSize().let { it.first.toFloat() / it.second.coerceAtLeast(1) }
-        val gameHeight = if (wanted) com.droiddeck.launcher.session.SessionDisplay.unfoldedGameHeight(width, height, tabRow, outputAspect)
+        val share = unfoldedDragShare ?: SessionPrefs.unfoldedGameShare(this,
+            com.droiddeck.launcher.session.SessionDisplay.unfoldedShape(width, height))
+        val gameHeight = if (wanted) com.droiddeck.launcher.session.SessionDisplay.unfoldedGameHeight(width, height, tabRow, outputAspect, share)
             else FrameLayout.LayoutParams.MATCH_PARENT
+        if (wanted) unfoldedGameTop = gameHeight
         val params = surfaceView.layoutParams as FrameLayout.LayoutParams
         if (params.height != gameHeight) {
             surfaceView.layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, gameHeight, Gravity.TOP)
@@ -4717,6 +4725,8 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
         if (panel != null && (!wanted || panel.dock != dock)) {
             sessionRoot.removeView(unfoldedColumn)
             unfoldedColumn = null
+            unfoldedHandle?.let { sessionRoot.removeView(it) }
+            unfoldedHandle = null
             unfoldedDeckSurface = null
             unfoldedDeckPanel = null
             unfoldedPanel = null
@@ -4765,6 +4775,36 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback, com.droidde
             bar.visibility = visibility
             bar.post { applyUnfoldedControls() }
         }
+        placeSplitHandle(collapsible && unfoldedBarOpen)
+    }
+
+    /** The grip on the border between the game and the band while the band's bar is open (BandSplitHandle). */
+    private fun placeSplitHandle(shown: Boolean) {
+        if (!shown) { unfoldedHandle?.visibility = View.GONE; return }
+        val density = resources.displayMetrics.density
+        val w = (160 * density).toInt()
+        val h = (36 * density).toInt()
+        val handle = unfoldedHandle ?: com.droiddeck.launcher.input.BandSplitHandle(this).also { grip ->
+            fun shape() = com.droiddeck.launcher.session.SessionDisplay.unfoldedShape(rootContentWidth(), rootContentHeight())
+            grip.onDragStart = { unfoldedDragStart = unfoldedGameTop; releasePads() }
+            grip.onDrag = { dy ->
+                val height = rootContentHeight()
+                if (height > 0) { unfoldedDragShare = (unfoldedDragStart + dy) / height; applyUnfoldedControls() }
+            }
+            grip.onDragEnd = {
+                val height = rootContentHeight()
+                if (height > 0 && unfoldedDragShare != null) SessionPrefs.setUnfoldedGameShare(this, shape(), unfoldedGameTop.toFloat() / height)
+                unfoldedDragShare = null
+                applyUnfoldedControls()
+            }
+            grip.onReset = { SessionPrefs.setUnfoldedGameShare(this, shape(), null); applyUnfoldedControls() }
+            sessionRoot.addView(grip, FrameLayout.LayoutParams(w, h, Gravity.TOP or Gravity.CENTER_HORIZONTAL))
+            unfoldedHandle = grip
+        }
+        handle.visibility = View.VISIBLE
+        val params = handle.layoutParams as FrameLayout.LayoutParams
+        val top = unfoldedGameTop - h / 2
+        if (params.topMargin != top) { params.topMargin = top; handle.layoutParams = params }
     }
 
     private fun showUnfoldedDeckPanel() {

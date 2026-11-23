@@ -48,7 +48,12 @@ data class InputProfile(
         copy(bindings = bindings + (role to (bindings[role].orEmpty() + (control to action))))
 
     fun elementAction(role: InputRole, id: String, control: InputControl): InputAction =
-        elements[role]?.get(id) ?: if (id == "legacy:${control.id}") action(role, control) else InputAction.Disabled
+        elements[role]?.get(id) ?: when (id) {
+            "legacy:${control.id}" -> action(role, control)
+            // a keyboard button a layout did not bring (a foldable's band adds one: FoldBandGeometry) still opens the keyboard
+            "builtin:keyboard" -> InputAction.Command(InputCommand.KEYBOARD)
+            else -> InputAction.Disabled
+        }
 
     fun elementClickAction(role: InputRole, element: InputSurfaceElement): InputAction = clicks[role]?.get(element.id)
         ?: defaultElementClick(element, elementAction(role, element.id, element.control)) { action(role, it) }

@@ -57,8 +57,29 @@ class FoldBandGeometryTest {
         assertEquals(1996f, centre(e.of(InputControl.B))[0], 2f); assertEquals(443f, centre(e.of(InputControl.B))[1], 2f)
     }
 
-    @Test fun keepsEverythingOnTheBandAndApart() {
-        val e = placed().filter { it.id.startsWith("legacy:") }
+    @Test fun keepsEverythingOnTheBandAndApart() = assertOnBandAndApart(placed(), width, height)
+
+    // the player dragged the game smaller (a 35% game leaves 2184 x 1279): the band takes nxnative's tablet layout
+    @Test fun aTallerBandTakesTheTabletLayoutAndKeepsItApart() {
+        val tall = 1279
+        val e = FoldBandGeometry(width, tall, Rect(), xdpi).place(stock(), DpadStyle.CROSS)
+        assertOnBandAndApart(e, width, tall)
+        val a = e.first { it.id == "legacy:a" }
+        assertEquals(.0895f * tall, a.width * width, .0895f * tall * .46f)   // the tablet's face button, grown at most x1.45
+        assertTrue(a.width * width / xdpi * 25.4f >= 8f)
+    }
+
+    @Test fun theKeyboardButtonIsAlwaysThereAndOpensTheKeyboard() {
+        val k = placed().single { it.id == "builtin:keyboard" }
+        val c = floatArrayOf(k.x * width + k.width * width / 2f, k.y * height + k.height * height / 2f)
+        assertEquals(width / 2f, c[0], 2f)
+        assertTrue(c[1] > height * .8f && k.y * height + k.height * height <= height + 1f)
+        assertEquals(InputAction.Command(InputCommand.KEYBOARD), InputProfile("p").elementAction(InputRole.PRIMARY, k.id, k.control))
+    }
+
+    private fun assertOnBandAndApart(all: List<InputSurfaceElement>, width: Int, height: Int) {
+        fun box(e: InputSurfaceElement) = floatArrayOf(e.x * width, e.y * height, e.width * width, e.height * height)
+        val e = all.filter { it.id.startsWith("legacy:") || it.id == "builtin:keyboard" }
         for (c in e) {
             val b = box(c)
             assertTrue("${c.id} on the band", b[0] >= -1f && b[1] >= -1f && b[0] + b[2] <= width + 1f && b[1] + b[3] <= height + 1f)
