@@ -2407,6 +2407,19 @@ class SessionService : Service() {
             updateSuspendPolicy()
             return
         }
+        if (SessionState.running && !SessionState.stopRequested) {
+            // Swiping the app away keeps the session, paused until Resume as the session menu's Pause holds it (ACTION_PAUSE_NOW):
+            // opening the app again goes back to the game where it was. The session menu's stop ends it.
+            Log.i(TAG, "task removed - keeping the session, paused")
+            activityVisible = false
+            if (!SessionState.suspended && !signInHold) {
+                manualHold = true
+                SessionState.manualPause = true
+                suspendAttemptFailed = false
+            }
+            updateSuspendPolicy()
+            return
+        }
         Log.i(TAG, "task removed - ending the session")
         stopSession(0)
         super.onTaskRemoved(rootIntent)
