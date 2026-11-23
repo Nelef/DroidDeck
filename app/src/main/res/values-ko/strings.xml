@@ -721,6 +721,8 @@
     <string name="hud_metric_gpu_model">GPU 이름</string>
     <string name="hud_metric_gpu">GPU 사용률</string>
     <string name="hud_metric_gpu_temp">GPU 온도</string>
+    <string name="hud_metric_gpu_clock">GPU 클럭</string>
+    <string name="hud_metric_cpu_clock">CPU 클럭</string>
     <string name="hud_metric_cpu">CPU 사용률</string>
     <string name="hud_metric_per_core">코어별 CPU</string>
     <string name="hud_metric_temp">온도</string>

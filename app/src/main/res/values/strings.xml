@@ -756,6 +756,8 @@
     <string name="hud_metric_gpu_model">GPU name</string>
     <string name="hud_metric_gpu">GPU load</string>
     <string name="hud_metric_gpu_temp">GPU temperature</string>
+    <string name="hud_metric_gpu_clock">GPU clock</string>
+    <string name="hud_metric_cpu_clock">CPU clock</string>
     <string name="hud_metric_cpu">CPU load</string>
     <string name="hud_metric_per_core">CPU per core</string>
     <string name="hud_metric_temp">Temperatures</string>

@@ -750,6 +750,8 @@ class DroidDeckHudView(context: Context) : View(context) {
         "showGpuModel" -> "MODEL" to colGpu
         "showGPULoad" -> "GPU" to colGpu
         "showGpuTemp" -> "GPU.T" to colGpu
+        "showGpuClock" -> "GPU.CLK" to colGpu
+        "showCpuClock" -> "CPU.CLK" to colCpu
         "showCPUUsage" -> "CPU" to colCpu
         "showTemp" -> "CPU.T" to colCpu
         "showBatteryTemp" -> "BAT.T" to colBat
@@ -784,6 +786,9 @@ class DroidDeckHudView(context: Context) : View(context) {
                 else gpuModelSpans(valuePx, colValue)
             "showGPULoad" -> numUnit(s.gpuPercent?.toString(), "%", valuePx, unitPx)
             "showGpuTemp" -> tempSpans(s.gpuTempC, HudMetrics.TempSensor.GPU, valuePx, unitPx)
+            // the clocks 0.7.1 showed beside GPU and CPU load, each its own reading since the readings got switches
+            "showGpuClock" -> numUnit(s.gpuClockMhz?.toString(), "MHz", valuePx, unitPx)
+            "showCpuClock" -> numUnit(s.cpuClockMhz?.toString(), "MHz", valuePx, unitPx)
             "showCPUUsage" -> numUnit(s.cpuPercent?.toString(), "%", valuePx, unitPx)
             "showTemp" -> tempSpans(s.cpuTempC, HudMetrics.TempSensor.CPU, valuePx, unitPx)
             "showBatteryTemp" -> tempSpans(s.battery.tempC, HudMetrics.TempSensor.BATTERY, valuePx, unitPx)

@@ -181,6 +181,8 @@ private val METRICS = listOf(
     HudMetric("showTemp", R.string.hud_metric_temp),
     HudMetric("showBatteryTemp", R.string.drawer_hud_battery),
     HudMetric("showGpuTemp", R.string.hud_metric_gpu_temp),
+    HudMetric("showGpuClock", R.string.hud_metric_gpu_clock),
+    HudMetric("showCpuClock", R.string.hud_metric_cpu_clock),
     HudMetric("showVram", R.string.hud_metric_vram),
     HudMetric("showRAM", R.string.hud_metric_ram),
     HudMetric("showSwap", R.string.hud_metric_swap),
