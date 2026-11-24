@@ -714,19 +714,20 @@ private fun MemoryGroup(s: FrontEndState, a: FrontEndActions, host: MenuHost, on
     SettingsGroup(stringResource(R.string.setup_group_background_apps)) {
         ToggleRow(
             host, "clear-cached-apps", stringResource(R.string.setup_clear_cached),
-            stringResource(if (s.adbPaired) R.string.setup_clear_cached_hint else R.string.setup_clear_cached_unpaired),
-            s.clearCachedApps, enabled = s.adbPaired || s.clearCachedApps,
+            stringResource(if (s.adbPaired) R.string.setup_clear_cached_hint else R.string.setup_memory_unpaired_tcpip),
+            // without a pairing, adbd that `adb tcpip 5555` left on loopback runs them (WirelessAdbFix.shell)
+            s.clearCachedApps, enabled = true,
         ) { a.onClearCachedApps(it) }
         ChoiceRow(
             host, "background-app-limit", stringResource(R.string.setup_bg_limit),
-            stringResource(if (s.adbPaired) R.string.setup_bg_limit_hint else R.string.setup_clear_cached_unpaired),
+            stringResource(if (s.adbPaired) R.string.setup_bg_limit_hint else R.string.setup_memory_unpaired_tcpip),
             listOf(
                 com.droiddeck.launcher.core.BackgroundAppLimit.OFF to stringResource(R.string.game_env_off),
                 4 to stringResource(R.string.setup_bg_limit_4),
                 1 to stringResource(R.string.setup_bg_limit_1),
                 0 to stringResource(R.string.setup_bg_limit_0),
             ),
-            s.backgroundAppLimit, enabled = s.adbPaired || s.backgroundAppLimit != com.droiddeck.launcher.core.BackgroundAppLimit.OFF,
+            s.backgroundAppLimit, enabled = true,
             onPick = a.onBackgroundAppLimit,
         )
         ChoiceRow(

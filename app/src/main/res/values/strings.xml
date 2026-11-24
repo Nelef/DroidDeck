@@ -4047,6 +4047,7 @@
     <string name="setup_clear_cached">Clear cached apps before a session</string>
     <string name="setup_clear_cached_hint">When a session starts, DroidDeck closes the apps Android keeps parked in the background, so the game has more memory. Wireless debugging must be on.</string>
     <string name="setup_clear_cached_unpaired">Needs DroidDeck paired with Wireless debugging (Pair, below).</string>
+    <string name="setup_memory_unpaired_tcpip">Needs DroidDeck paired with Wireless debugging (Pair, below), or adbd left on port 5555 by adb tcpip 5555, which also works on mobile data until the phone restarts.</string>
     <string name="setup_memory_hud">Memory readout</string>
     <string name="setup_memory_hud_hint">Memory and swap in use, on the session screen. Advanced splits it into the game, DroidDeck, Android and the GPU.</string>
     <string name="setup_memory_hud_simple">Simple</string>

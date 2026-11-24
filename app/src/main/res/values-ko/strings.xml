@@ -3753,6 +3753,7 @@
     <string name="setup_clear_cached">세션 전에 캐시된 앱 닫기</string>
     <string name="setup_clear_cached_hint">세션이 시작될 때 Android가 백그라운드에 보관 중인 앱을 닫아 게임이 메모리를 더 쓸 수 있게 합니다. 무선 디버깅이 켜져 있어야 합니다.</string>
     <string name="setup_clear_cached_unpaired">DroidDeck을 무선 디버깅과 페어링해야 합니다(아래 페어링).</string>
+    <string name="setup_memory_unpaired_tcpip">무선 디버깅 페어링(아래)이 필요합니다. PC에서 adb tcpip 5555로 5555 포트를 열어 두면 페어링 없이도 모바일 데이터에서 재부팅 전까지 동작합니다.</string>
     <string name="setup_memory_hud">메모리 표시</string>
     <string name="setup_memory_hud_hint">사용 중인 메모리와 스왑을 세션 화면에 표시합니다. 고급에서는 게임, DroidDeck, Android, GPU로 나눠 보여 줍니다.</string>
     <string name="setup_memory_hud_simple">간단</string>

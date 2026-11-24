@@ -22,6 +22,7 @@ object WirelessAdbFix {
     private const val HOST_FILE = "wireless-adb-host.txt"
     private const val CONNECTION_FILE = "wireless-adb-connection.txt"
     const val LOOPBACK = "127.0.0.1"
+    const val TCPIP_PORT = 5555
 
     private data class SavedConnection(val host: String, val port: Int?)
 
@@ -251,6 +252,18 @@ object WirelessAdbFix {
     }
 
     fun shell(context: Context, command: String): String {
+        val paired = runCatching { pairedShell(context, command) }
+        paired.getOrNull()?.let { return it }
+        // Wireless debugging runs only on Wi-Fi, so on mobile data the paired connection is gone. adbd that `adb tcpip 5555` left
+        // listening on loopback (until the phone restarts) takes the same key, or asks on the phone once to allow it.
+        return runCatching { loopbackShell(context, command) }.getOrElse { loopback ->
+            val first = paired.exceptionOrNull() ?: throw loopback
+            first.addSuppressed(loopback)
+            throw first
+        }
+    }
+
+    private fun pairedShell(context: Context, command: String): String {
         var output = ""
         withSavedPairing(context) { appContext, host, port ->
             loadOrCreateIdentity(appContext)
@@ -262,6 +275,16 @@ object WirelessAdbFix {
             saveConnection(appContext, host, port)
         }
         return output
+    }
+
+    private fun loopbackShell(context: Context, command: String): String {
+        val appContext = context.applicationContext
+        loadOrCreateIdentity(appContext)
+        Kadb.create(LOOPBACK, TCPIP_PORT, 2_000, 10_000).use { adb ->
+            val result = adb.shell(command)
+            check(result.exitCode == 0) { result.allOutput.ifBlank { appContext.getString(R.string.adbfix_command_failed, result.exitCode) } }
+            return result.output
+        }
     }
 
     private fun withSavedPairing(context: Context, action: (Context, String, Int) -> Unit) {
